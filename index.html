@@ -1,0 +1,1351 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0c1510" />
+  <title>DC Cash | DemocracyCraft Banking</title>
+  <meta name="description" content="A player-first banking portal for the DemocracyCraft server economy." />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap');
+
+    :root {
+      --ink: #18201c;
+      --ink-2: #26312b;
+      --paper: #f4f5f1;
+      --paper-2: #e9ece6;
+      --white: #ffffff;
+      --emerald: #16784a;
+      --emerald-dark: #0e5d38;
+      --emerald-soft: #e5f0e9;
+      --gold: #b98429;
+      --red: #e75c4e;
+      --blue: #4375e8;
+      --muted: #68736d;
+      --line: #dce1dc;
+      --shadow: 0 10px 30px rgba(26, 39, 31, .07);
+      --display: 'Public Sans', sans-serif;
+      --serif: 'Source Serif 4', Georgia, serif;
+      --mono: 'Public Sans', sans-serif;
+    }
+
+    body[data-theme="midnight"] {
+      --ink: #f3f4ec;
+      --ink-2: #dfe7e1;
+      --paper: #0c120e;
+      --paper-2: #172019;
+      --white: #131c16;
+      --muted: #9aa79e;
+      --line: rgba(236, 245, 238, .15);
+      --emerald-dark: #57ee84;
+      --emerald-soft: #183b25;
+      --shadow: 0 22px 55px rgba(0, 0, 0, .34);
+    }
+    body[data-theme="civic"] {
+      --ink: #0b1934;
+      --ink-2: #13264d;
+      --paper: #edf2fa;
+      --paper-2: #dfe7f4;
+      --white: #f9fbff;
+      --emerald: #48e383;
+      --emerald-dark: #1d5cc7;
+      --emerald-soft: #dce8ff;
+      --muted: #61708a;
+      --line: rgba(11, 25, 52, .15);
+    }
+    body.compact-mode .main { padding-top: 25px; }
+    body.compact-mode .transaction-table td { padding-top: 11px; padding-bottom: 11px; }
+    body.compact-mode .overview-grid { gap: 14px; }
+    body.balance-hidden #balance-display,
+    body.balance-hidden #pay-balance { filter: blur(12px); user-select: none; }
+
+    * { box-sizing: border-box; }
+    html { min-width: 320px; scroll-behavior: smooth; }
+    body { margin: 0; min-height: 100vh; background: var(--paper); color: var(--ink); font-family: var(--display); }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid rgba(57, 229, 111, .35); outline-offset: 2px; }
+    svg { display: block; }
+
+    .screen { min-height: 100vh; }
+    .hidden { display: none !important; }
+    .mono { font-family: var(--mono); }
+
+    /* Authentication */
+    .auth-screen {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(430px, .75fr);
+      min-height: 100vh;
+      background: var(--ink);
+      color: var(--white);
+      overflow: hidden;
+      position: relative;
+    }
+    .auth-screen::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(90deg, black, transparent 72%);
+      pointer-events: none;
+    }
+    .auth-story { min-height: 100vh; padding: clamp(32px, 4.8vw, 76px); display: flex; flex-direction: column; position: relative; isolation: isolate; }
+    .brand { display: inline-flex; align-items: center; gap: 13px; font-weight: 800; letter-spacing: -.04em; font-size: 21px; }
+    .brand-mark {
+      width: 42px; height: 42px; display: grid; place-items: center;
+      background: var(--emerald); color: var(--ink); border: 2px solid currentColor;
+      box-shadow: 5px 5px 0 rgba(57,229,111,.18); font-family: var(--mono); font-size: 17px; font-weight: 500;
+      clip-path: polygon(0 0, 78% 0, 100% 22%, 100% 100%, 22% 100%, 0 78%);
+    }
+    .brand-sub { display: block; margin-top: 2px; color: #9da89f; font: 500 10px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+    .auth-copy { max-width: 820px; margin: auto 0; padding: 70px 0; }
+    .kicker { display: flex; align-items: center; gap: 10px; color: var(--emerald); font: 500 12px/1 var(--mono); letter-spacing: .13em; text-transform: uppercase; }
+    .kicker::before { content: ''; width: 30px; height: 2px; background: currentColor; }
+    .auth-copy h1 { max-width: 780px; margin: 24px 0 22px; font-size: clamp(52px, 6.3vw, 98px); line-height: .91; letter-spacing: -.075em; font-weight: 700; }
+    .auth-copy h1 span { color: var(--emerald); }
+    .auth-copy > p { max-width: 610px; margin: 0; color: #afb9b1; font-size: clamp(17px, 1.5vw, 21px); line-height: 1.55; }
+    .server-strip { display: flex; gap: 25px; flex-wrap: wrap; align-items: center; color: #b8c1ba; font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+    .server-strip span { display: inline-flex; align-items: center; gap: 8px; }
+    .live-dot { width: 8px; height: 8px; background: var(--emerald); box-shadow: 0 0 0 5px rgba(57,229,111,.12); animation: pulse 2s infinite; }
+    @keyframes pulse { 50% { box-shadow: 0 0 0 9px rgba(57,229,111,0); } }
+    .skyline { position: absolute; z-index: -1; right: 2%; bottom: 0; width: 60%; height: 42%; opacity: .11; }
+    .building { position: absolute; bottom: 0; background: var(--emerald); border: 2px solid var(--emerald); }
+    .building::after { content: ''; position: absolute; inset: 12px; background-image: radial-gradient(circle, var(--ink) 2px, transparent 3px); background-size: 18px 18px; }
+    .building:nth-child(1) { left: 0; width: 18%; height: 40%; }
+    .building:nth-child(2) { left: 19%; width: 25%; height: 73%; }
+    .building:nth-child(3) { left: 45%; width: 16%; height: 54%; }
+    .building:nth-child(4) { left: 62%; width: 32%; height: 90%; clip-path: polygon(0 13%, 50% 0, 100% 13%, 100% 100%, 0 100%); }
+    .auth-panel { min-height: 100vh; background: var(--paper); color: var(--ink); padding: 28px; display: grid; place-items: center; position: relative; }
+    .auth-panel::before { content: 'SECURE CITIZEN ACCESS'; position: absolute; right: 28px; top: 28px; color: var(--muted); font: 500 9px/1 var(--mono); letter-spacing: .14em; }
+    .login-card { width: min(100%, 490px); padding: clamp(30px, 4vw, 54px); background: var(--white); border: 1px solid var(--line); box-shadow: var(--shadow); position: relative; }
+    .login-card::after { content: ''; position: absolute; width: 12px; height: 12px; right: -1px; top: -1px; background: var(--emerald); }
+    .step-count { color: var(--emerald-dark); font: 500 11px/1 var(--mono); letter-spacing: .11em; text-transform: uppercase; margin-bottom: 22px; }
+    .login-card h2 { margin: 0 0 12px; font-size: clamp(31px, 3vw, 42px); line-height: 1; letter-spacing: -.055em; }
+    .login-card .lead { margin: 0 0 34px; color: var(--muted); line-height: 1.55; }
+    .field-label { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 9px; font: 600 12px/1 var(--display); }
+    .field-label small { color: var(--muted); font: 400 10px/1 var(--mono); }
+    .input-wrap { position: relative; }
+    .input-prefix { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--muted); font-family: var(--mono); }
+    .text-input { width: 100%; height: 58px; border: 1px solid var(--line); background: var(--white); padding: 0 16px; border-radius: 0; color: var(--ink); transition: .18s; }
+    .text-input.prefixed { padding-left: 34px; }
+    .text-input:hover { border-color: rgba(12,21,16,.5); }
+    .text-input:focus { border-color: var(--emerald-dark); box-shadow: inset 4px 0 0 var(--emerald); outline: 0; }
+    .primary-btn, .secondary-btn, .ghost-btn { height: 54px; border: 1px solid var(--ink); padding: 0 22px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: .18s ease; }
+    .primary-btn { width: 100%; margin-top: 14px; background: var(--emerald); color: var(--ink); box-shadow: 4px 4px 0 var(--ink); }
+    .primary-btn:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 var(--ink); }
+    .primary-btn:active { transform: translate(2px,2px); box-shadow: 2px 2px 0 var(--ink); }
+    .secondary-btn { background: var(--ink); color: var(--white); }
+    .secondary-btn:hover { background: #26372b; }
+    .ghost-btn { background: transparent; color: var(--ink); border-color: var(--line); }
+    .ghost-btn:hover { border-color: var(--ink); }
+    .security-note { display: flex; gap: 11px; margin-top: 25px; padding-top: 21px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .security-note svg { flex: 0 0 auto; color: var(--emerald-dark); }
+    .verify-command { margin: 20px 0; background: var(--ink); color: var(--white); padding: 15px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; font: 500 12px/1.4 var(--mono); }
+    .copy-mini { border: 0; background: var(--emerald); color: var(--ink); padding: 8px 10px; font: 500 10px/1 var(--mono); text-transform: uppercase; }
+    .pin-input { text-align: center; font: 500 28px/1 var(--mono); letter-spacing: .42em; padding-left: calc(16px + .42em); }
+    .verification-amount { margin: 20px 0 10px; padding: 20px; background: var(--emerald-soft); border: 1px solid var(--line); }
+    .verification-amount span { display: block; color: var(--muted); font: 500 9px/1 var(--mono); text-transform: uppercase; letter-spacing: .11em; }
+    .verification-amount strong { display: block; margin-top: 8px; color: var(--ink); font-size: 34px; letter-spacing: -.05em; }
+    .api-listener { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 13px 14px; border: 1px solid var(--line); background: var(--paper); margin: 12px 0 4px; }
+    .api-listener-main { display: flex; align-items: center; gap: 11px; }
+    .listener-ring { width: 12px; height: 12px; border: 2px solid var(--emerald-dark); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
+    .api-listener.matched .listener-ring { border: 0; border-radius: 0; background: var(--emerald); animation: none; }
+    .api-listener strong { display: block; font-size: 11px; }
+    .api-listener small { display: block; margin-top: 4px; color: var(--muted); font: 400 9px/1 var(--mono); }
+    .prototype-badge { flex: 0 0 auto; padding: 5px 7px; background: #fff0c9; color: #6d561c; font: 500 8px/1 var(--mono); text-transform: uppercase; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .back-link { margin-top: 18px; border: 0; background: transparent; color: var(--muted); font-size: 12px; padding: 0; }
+    .back-link:hover { color: var(--ink); }
+    .form-error { min-height: 18px; margin: 9px 0 0; color: var(--red); font-size: 12px; }
+
+    /* Dashboard shell */
+    .dashboard { min-height: 100vh; background: #ede9df; }
+    .top-header { height: 78px; background: var(--ink); color: var(--white); display: flex; align-items: center; justify-content: space-between; padding: 0 34px; position: sticky; top: 0; z-index: 30; }
+    .header-left, .header-right { display: flex; align-items: center; gap: 24px; }
+    .header-divider { width: 1px; height: 28px; background: rgba(255,255,255,.15); }
+    .server-status { display: flex; align-items: center; gap: 10px; color: #b5bfb7; font: 500 10px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    .header-action { width: 40px; height: 40px; border: 1px solid rgba(255,255,255,.15); background: transparent; color: var(--white); display: grid; place-items: center; position: relative; }
+    .header-action:hover { background: rgba(255,255,255,.08); }
+    .alert-dot { position: absolute; width: 7px; height: 7px; background: var(--emerald); right: 7px; top: 7px; }
+    .citizen-chip { display: flex; align-items: center; gap: 11px; }
+    .mc-avatar { width: 39px; height: 39px; background: #c99464; border: 2px solid rgba(255,255,255,.7); position: relative; image-rendering: pixelated; overflow: hidden; }
+    .mc-avatar::before { content: ''; position: absolute; left: 6px; right: 6px; top: 12px; height: 5px; background: linear-gradient(90deg,#1b221d 0 22%,transparent 22% 39%,#1b221d 39% 61%,transparent 61% 78%,#1b221d 78%); }
+    .mc-avatar::after { content: ''; position: absolute; left: 12px; bottom: 6px; width: 13px; height: 4px; background: #754533; }
+    .citizen-chip strong { display: block; font-size: 12px; }
+    .citizen-chip small { display: block; margin-top: 3px; color: #8e9a91; font: 400 9px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    .app-layout { min-height: calc(100vh - 78px); display: grid; grid-template-columns: 242px minmax(0, 1fr); }
+    .sidebar { background: var(--white); border-right: 1px solid var(--line); padding: 31px 19px 24px; display: flex; flex-direction: column; position: sticky; top: 78px; height: calc(100vh - 78px); }
+    .nav-label { color: #9aa099; margin: 0 12px 10px; font: 500 9px/1 var(--mono); letter-spacing: .13em; text-transform: uppercase; }
+    .side-nav { display: grid; gap: 4px; }
+    .nav-item { height: 48px; border: 0; background: transparent; color: #5c665f; display: flex; align-items: center; gap: 13px; padding: 0 13px; text-align: left; font-size: 13px; font-weight: 600; position: relative; }
+    .nav-item:hover { color: var(--ink); background: #f0eee7; }
+    .nav-item.active { color: var(--ink); background: var(--emerald-soft); }
+    .nav-item.active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--emerald-dark); }
+    .nav-item .count { margin-left: auto; min-width: 22px; padding: 4px 5px; background: var(--ink); color: var(--white); text-align: center; font: 500 9px/1 var(--mono); }
+    .nav-rule { height: 1px; background: var(--line); margin: 20px 12px; }
+    .support-card { margin-top: auto; padding: 17px; background: var(--ink); color: var(--white); position: relative; overflow: hidden; }
+    .support-card::after { content: '?'; position: absolute; right: -4px; bottom: -22px; font: 700 82px/1 var(--display); color: rgba(57,229,111,.16); }
+    .support-card strong { position: relative; z-index: 1; font-size: 13px; }
+    .support-card p { position: relative; z-index: 1; margin: 7px 0 14px; color: #9eaaa1; font-size: 11px; line-height: 1.45; }
+    .support-card button { position: relative; z-index: 1; border: 0; background: transparent; color: var(--emerald); padding: 0; font: 500 10px/1 var(--mono); text-transform: uppercase; }
+    .main { min-width: 0; padding: clamp(26px, 3vw, 46px); }
+    .view { display: none; animation: enter .35s ease both; }
+    .view.active { display: block; }
+    @keyframes enter { from { opacity: 0; transform: translateY(8px); } }
+    .page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 31px; }
+    .page-heading h1 { margin: 5px 0 0; font-size: clamp(34px, 3.5vw, 54px); line-height: 1; letter-spacing: -.06em; }
+    .overline { color: var(--emerald-dark); font: 500 10px/1 var(--mono); letter-spacing: .13em; text-transform: uppercase; }
+    .date-stamp { color: var(--muted); font: 400 11px/1 var(--mono); }
+    .overview-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, .8fr); gap: 22px; align-items: start; }
+    .balance-card { min-height: 286px; background: var(--ink); color: var(--white); padding: clamp(26px, 3.2vw, 42px); position: relative; overflow: hidden; box-shadow: var(--shadow); }
+    .balance-card::before { content: ''; position: absolute; width: 330px; height: 330px; border: 54px solid var(--emerald); border-radius: 50%; right: -150px; top: -180px; opacity: .9; }
+    .balance-card::after { content: 'DC'; position: absolute; right: 20px; bottom: -34px; color: rgba(255,255,255,.045); font: 800 150px/1 var(--display); letter-spacing: -.12em; }
+    .card-topline { display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 1; }
+    .card-topline span { color: #aab4ac; font: 500 10px/1 var(--mono); letter-spacing: .11em; text-transform: uppercase; }
+    .verified-pill { display: inline-flex !important; gap: 7px; align-items: center; color: var(--emerald) !important; }
+    .verified-pill i { width: 7px; height: 7px; background: currentColor; }
+    .balance-number { position: relative; z-index: 1; margin: 42px 0 42px; font-size: clamp(52px, 5vw, 78px); line-height: .85; letter-spacing: -.075em; font-weight: 700; }
+    .balance-number small { color: var(--emerald); font: 500 12px/1 var(--mono); letter-spacing: .1em; }
+    .balance-foot { display: flex; gap: 34px; position: relative; z-index: 1; }
+    .balance-foot div { display: grid; gap: 6px; }
+    .balance-foot span { color: #89958c; font: 400 9px/1 var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+    .balance-foot strong { font: 500 12px/1 var(--mono); }
+    .quick-card { background: var(--white); border: 1px solid var(--line); }
+    .quick-title { padding: 21px 22px 16px; font-size: 13px; font-weight: 700; border-bottom: 1px solid var(--line); }
+    .quick-actions { display: grid; grid-template-columns: repeat(2,1fr); }
+    .quick-action { min-height: 96px; border: 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: transparent; padding: 17px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; color: var(--ink); transition: .16s; }
+    .quick-action:nth-child(2n) { border-right: 0; }
+    .quick-action:nth-last-child(-n+2) { border-bottom: 0; }
+    .quick-action:hover { background: var(--emerald-soft); }
+    .quick-action svg { color: var(--emerald-dark); }
+    .quick-action span { font-size: 12px; font-weight: 700; }
+    .stats-row { grid-column: 1/-1; display: grid; grid-template-columns: repeat(3,1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+    .stat { background: var(--white); padding: 22px; display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+    .stat-label { color: var(--muted); font-size: 11px; }
+    .stat-value { margin-top: 7px; font-size: 22px; letter-spacing: -.04em; font-weight: 700; }
+    .trend { padding: 6px 8px; color: var(--emerald-dark); background: var(--emerald-soft); font: 500 10px/1 var(--mono); }
+    .trend.down { color: #9a3d34; background: #fae6e2; }
+    .content-grid { grid-column: 1/-1; display: grid; grid-template-columns: minmax(0,1.45fr) minmax(290px,.65fr); gap: 22px; }
+    .panel { background: var(--white); border: 1px solid var(--line); }
+    .panel-head { min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 0 22px; border-bottom: 1px solid var(--line); }
+    .panel-head h2 { margin: 0; font-size: 15px; letter-spacing: -.02em; }
+    .text-btn { border: 0; background: transparent; color: var(--emerald-dark); padding: 6px 0; font: 500 10px/1 var(--mono); text-transform: uppercase; letter-spacing: .07em; }
+    .transaction-table { width: 100%; border-collapse: collapse; }
+    .transaction-table th { color: #8d958f; padding: 14px 20px; text-align: left; font: 500 9px/1 var(--mono); text-transform: uppercase; letter-spacing: .1em; border-bottom: 1px solid var(--line); }
+    .transaction-table td { padding: 17px 20px; border-bottom: 1px solid rgba(12,21,16,.08); font-size: 12px; }
+    .transaction-table tbody tr:last-child td { border-bottom: 0; }
+    .transaction-table tbody tr:hover { background: #f7f5ef; }
+    .txn-title { display: flex; align-items: center; gap: 12px; }
+    .txn-icon { width: 35px; height: 35px; display: grid; place-items: center; background: var(--paper-2); color: var(--ink); font: 500 10px/1 var(--mono); }
+    .txn-title strong { display: block; font-size: 12px; }
+    .txn-title small { display: block; margin-top: 3px; color: var(--muted); font: 400 9px/1 var(--mono); }
+    .type-chip { display: inline-block; padding: 5px 7px; background: #eceae4; color: #5d665f; font: 500 9px/1 var(--mono); text-transform: uppercase; }
+    .amount { text-align: right; font: 500 12px/1 var(--mono); }
+    .amount.positive { color: var(--emerald-dark); }
+    .connection-body { padding: 23px; }
+    .connection-hero { padding: 18px; border: 1px solid var(--line); background: #f6f4ed; }
+    .connection-row { display: flex; align-items: center; gap: 13px; }
+    .connection-icon { width: 40px; height: 40px; background: var(--emerald); display: grid; place-items: center; color: var(--ink); }
+    .connection-row strong { display: block; font-size: 12px; }
+    .connection-row small { display: block; color: var(--muted); margin-top: 4px; font: 400 9px/1 var(--mono); }
+    .connection-list { display: grid; gap: 15px; margin-top: 22px; }
+    .connection-list div { display: flex; justify-content: space-between; gap: 20px; color: var(--muted); font-size: 11px; }
+    .connection-list strong { color: var(--ink); font: 500 10px/1 var(--mono); }
+    .mini-chart { height: 82px; display: flex; align-items: flex-end; gap: 7px; margin-top: 24px; padding-top: 13px; border-top: 1px solid var(--line); }
+    .mini-chart i { flex: 1; height: var(--h); background: #cbd1cb; transition: .2s; }
+    .mini-chart i:nth-child(n+7) { background: var(--emerald); }
+    .mini-chart i:hover { background: var(--ink); }
+
+    /* Secondary views */
+    .toolbar { display: flex; gap: 10px; flex-wrap: wrap; }
+    .search-box { min-width: min(350px, 100%); height: 45px; border: 1px solid var(--line); background: var(--white); padding: 0 14px; }
+    .filter-select { height: 45px; border: 1px solid var(--line); background: var(--white); padding: 0 36px 0 13px; }
+    .large-panel { background: var(--white); border: 1px solid var(--line); }
+    .pay-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(320px,.7fr); gap: 22px; }
+    .pay-form { padding: clamp(24px, 3vw, 38px); }
+    .pay-form h2 { margin: 0 0 8px; font-size: 26px; letter-spacing: -.04em; }
+    .pay-form > p { margin: 0 0 30px; color: var(--muted); line-height: 1.5; font-size: 13px; }
+    .form-grid { display: grid; gap: 19px; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .select-input { appearance: none; }
+    .amount-entry { position: relative; }
+    .amount-entry .dollar { position: absolute; left: 16px; bottom: 16px; font: 500 18px/1 var(--mono); }
+    .amount-entry input { padding-left: 34px; font-family: var(--mono); }
+    .form-actions { display: flex; gap: 10px; margin-top: 10px; }
+    .form-actions .primary-btn { width: auto; min-width: 150px; margin: 0; }
+    .recipient-preview { min-height: 430px; background: var(--ink); color: var(--white); padding: 33px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
+    .recipient-preview::after { content: ''; position: absolute; width: 260px; height: 260px; border: 44px solid var(--emerald); border-radius: 50%; right: -140px; bottom: -160px; }
+    .preview-label { color: #89958c; font: 500 9px/1 var(--mono); text-transform: uppercase; letter-spacing: .12em; }
+    .preview-amount { margin: 18px 0 8px; font-size: 55px; font-weight: 700; letter-spacing: -.07em; }
+    .preview-note { color: #aeb7b0; font-size: 12px; }
+    .preview-recipient { position: relative; z-index: 1; display: flex; gap: 13px; align-items: center; }
+    .preview-avatar { width: 48px; height: 48px; background: var(--emerald); color: var(--ink); display: grid; place-items: center; font: 500 12px/1 var(--mono); }
+    .preview-recipient strong { display: block; }
+    .preview-recipient small { display: block; margin-top: 4px; color: #91a096; font: 400 9px/1 var(--mono); }
+    .empty-view { min-height: 390px; display: grid; place-items: center; text-align: center; padding: 40px; }
+    .empty-view .pixel-art { width: 84px; height: 84px; margin: 0 auto 22px; background: var(--emerald-soft); border: 1px solid var(--line); display: grid; place-items: center; }
+    .empty-view h2 { margin: 0 0 8px; font-size: 24px; letter-spacing: -.04em; }
+    .empty-view p { max-width: 440px; color: var(--muted); line-height: 1.5; font-size: 13px; }
+
+    /* Drawer */
+    .drawer-layer { position: fixed; inset: 0; z-index: 80; background: rgba(7,13,9,.55); backdrop-filter: blur(3px); opacity: 0; pointer-events: none; transition: .22s; }
+    .drawer-layer.open { opacity: 1; pointer-events: auto; }
+    .drawer { position: absolute; right: 0; top: 0; bottom: 0; width: min(100%, 520px); background: var(--paper); padding: 34px; transform: translateX(100%); transition: .3s cubic-bezier(.22,.84,.28,1); overflow-y: auto; }
+    .drawer-layer.open .drawer { transform: none; }
+    .drawer-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; padding-bottom: 25px; border-bottom: 1px solid var(--line); }
+    .drawer-head h2 { margin: 4px 0 0; font-size: 36px; letter-spacing: -.06em; }
+    .close-btn { width: 42px; height: 42px; border: 1px solid var(--line); background: transparent; display: grid; place-items: center; }
+    .drawer-body { padding-top: 28px; }
+    .amount-preset { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin: 10px 0 24px; }
+    .amount-preset button { height: 39px; border: 1px solid var(--line); background: var(--white); font: 500 10px/1 var(--mono); }
+    .amount-preset button:hover { border-color: var(--emerald-dark); background: var(--emerald-soft); }
+    .command-box { margin: 23px 0; background: var(--ink); color: var(--white); padding: 21px; }
+    .command-box .label { color: #839087; font: 500 9px/1 var(--mono); text-transform: uppercase; letter-spacing: .1em; }
+    .command-line { margin-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 15px; font: 500 12px/1.5 var(--mono); word-break: break-word; }
+    .info-box { padding: 15px; background: #e7eadf; color: #536054; font-size: 11px; line-height: 1.55; border-left: 3px solid var(--emerald-dark); }
+    .confirm-block { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 22px; }
+    .confirm-block .primary-btn { margin: 0; }
+    .receipt { text-align: center; padding: 35px 10px 10px; }
+    .receipt-check { width: 68px; height: 68px; margin: 0 auto 21px; background: var(--emerald); display: grid; place-items: center; color: var(--ink); box-shadow: 5px 5px 0 var(--ink); }
+    .receipt h3 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.05em; }
+    .receipt p { margin: 0; color: var(--muted); line-height: 1.5; font-size: 13px; }
+
+    .toast { position: fixed; z-index: 100; left: 50%; bottom: 28px; transform: translate(-50%,30px); background: var(--ink); color: var(--white); padding: 14px 18px; display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: .24s; font-size: 12px; }
+    .toast.show { opacity: 1; transform: translate(-50%,0); }
+    .toast i { width: 9px; height: 9px; background: var(--emerald); }
+
+    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+    .setting-list { padding: 5px 22px; }
+    .setting-row { min-height: 77px; display: flex; align-items: center; justify-content: space-between; gap: 22px; border-bottom: 1px solid var(--line); }
+    .setting-row:last-child { border-bottom: 0; }
+    .setting-row strong { display: block; font-size: 12px; }
+    .setting-row small { display: block; margin-top: 5px; color: var(--muted); font-size: 10px; line-height: 1.4; }
+    .setting-select { width: 150px; height: 40px; border: 1px solid var(--line); background: var(--white); color: var(--ink); padding: 0 10px; }
+    .switch { width: 44px; height: 24px; padding: 3px; border: 1px solid var(--line); background: var(--paper-2); display: flex; align-items: center; transition: .18s; }
+    .switch i { width: 16px; height: 16px; background: var(--muted); transition: .18s; }
+    .switch.on { background: var(--emerald); border-color: var(--emerald-dark); }
+    .switch.on i { transform: translateX(19px); background: var(--ink); }
+
+    /* Quiet civic-finance design pass */
+    body { background: var(--paper); font-size: 14px; -webkit-font-smoothing: antialiased; }
+    .mono { font-variant-numeric: tabular-nums; }
+    .auth-screen { grid-template-columns: minmax(0, 1.08fr) minmax(460px, .92fr); background: #173c2b; }
+    .auth-screen::before { display: none; }
+    .auth-story { padding: clamp(36px, 5vw, 72px); }
+    .brand { gap: 11px; font-size: 18px; letter-spacing: -.025em; }
+    .brand-mark { width: 38px; height: 38px; border: 0; border-radius: 10px; background: #f2f5f1; color: #173c2b; box-shadow: none; clip-path: none; font-family: var(--display); font-size: 13px; font-weight: 700; }
+    .brand-sub { margin-top: 3px; color: rgba(255,255,255,.58); font-family: var(--display); font-size: 9px; letter-spacing: .09em; }
+    .auth-copy { max-width: 690px; padding: 90px 0 70px; }
+    .kicker { color: #a9c6b6; font-family: var(--display); font-size: 11px; letter-spacing: .08em; }
+    .kicker::before { width: 20px; height: 1px; }
+    .auth-copy h1 { max-width: 650px; margin: 25px 0 24px; font-family: var(--serif); font-size: clamp(54px, 5.4vw, 82px); line-height: .99; letter-spacing: -.045em; font-weight: 500; }
+    .auth-copy h1 span { color: #dfeae3; }
+    .auth-copy > p { max-width: 540px; color: #bdcec4; font-size: 17px; line-height: 1.65; }
+    .server-strip { gap: 22px; color: rgba(255,255,255,.62); font-family: var(--display); font-size: 10px; letter-spacing: .06em; }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #8bc9a3; box-shadow: none; animation: none; }
+    .skyline { display: none; }
+    .auth-panel { background: #f3f5f1; padding: clamp(24px, 4vw, 64px); }
+    .auth-panel::before { right: 32px; top: 28px; font-family: var(--display); font-size: 9px; color: #89928c; letter-spacing: .09em; }
+    .login-card { width: min(100%, 510px); padding: clamp(34px, 4vw, 52px); border: 1px solid #e0e4df; border-radius: 18px; box-shadow: 0 18px 55px rgba(35,52,42,.09); }
+    .login-card::after { display: none; }
+    .step-count, .overline, .nav-label, .date-stamp, .server-status { font-family: var(--display); letter-spacing: .06em; }
+    .step-count { margin-bottom: 18px; color: var(--emerald-dark); font-size: 10px; }
+    .login-card h2 { font-family: var(--serif); font-size: clamp(34px, 3vw, 43px); font-weight: 600; letter-spacing: -.035em; }
+    .login-card .lead { margin-bottom: 30px; font-size: 14px; line-height: 1.6; }
+    .field-label { margin-bottom: 8px; font-size: 12px; }
+    .field-label small { font-family: var(--display); }
+    .text-input { height: 52px; border-color: #d6dcd7; border-radius: 10px; }
+    .text-input:hover { border-color: #aab4ae; }
+    .text-input:focus { border-color: var(--emerald); box-shadow: 0 0 0 3px rgba(22,120,74,.11); }
+    .primary-btn, .secondary-btn, .ghost-btn { height: 48px; border-radius: 10px; border: 0; font-size: 12px; }
+    .primary-btn { background: var(--emerald); color: #fff; box-shadow: none; }
+    .primary-btn:hover { background: var(--emerald-dark); transform: none; box-shadow: none; }
+    .primary-btn:active { transform: none; box-shadow: none; }
+    .secondary-btn { background: var(--ink-2); color: #fff; }
+    .ghost-btn { border: 1px solid var(--line); background: var(--white); }
+    .security-note { margin-top: 23px; padding-top: 20px; }
+    .verify-command { border-radius: 10px; background: #202a24; padding: 14px 15px; font-family: var(--display); }
+    .copy-mini { border-radius: 7px; background: #edf2ee; color: #173c2b; font-family: var(--display); }
+    .verification-amount { border-radius: 12px; background: #edf3ef; }
+    .verification-amount strong { font-family: var(--serif); font-variant-numeric: tabular-nums; }
+    .api-listener { border-radius: 10px; background: #f7f8f6; }
+    .prototype-badge, .trend, .type-chip { border-radius: 999px; font-family: var(--display); letter-spacing: .03em; }
+    .prototype-badge { background: #f4ead8; color: #795d27; }
+    .back-link { margin-top: 17px; }
+    .dashboard { background: var(--paper); }
+    .top-header { height: 70px; padding: 0 30px; background: rgba(255,255,255,.96); color: var(--ink); border-bottom: 1px solid var(--line); backdrop-filter: blur(12px); }
+    .top-header .brand-mark { background: var(--emerald); color: #fff; }
+    .top-header .brand { font-size: 16px; }
+    .header-divider { background: var(--line); }
+    .server-status { color: #657169; background: #f0f3ef; border: 1px solid #e0e5e1; border-radius: 999px; padding: 8px 11px; }
+    .server-status .live-dot { background: #c08b32; }
+    .header-action { border-color: var(--line); border-radius: 10px; color: var(--ink); }
+    .header-action:hover { background: var(--paper); }
+    .alert-dot { border-radius: 50%; background: var(--emerald); }
+    .mc-avatar { border: 0; border-radius: 9px; }
+    .citizen-chip small { color: var(--muted); font-family: var(--display); }
+    .app-layout { min-height: calc(100vh - 70px); grid-template-columns: 236px minmax(0,1fr); }
+    .sidebar { top: 70px; height: calc(100vh - 70px); padding: 28px 16px 22px; }
+    .nav-label { margin: 0 12px 9px; font-size: 9px; color: #8a948e; }
+    .side-nav { gap: 3px; }
+    .nav-item { height: 44px; gap: 12px; border-radius: 9px; padding: 0 12px; font-size: 12px; }
+    .nav-item.active { background: var(--emerald-soft); color: var(--emerald-dark); }
+    .nav-item.active::before { display: none; }
+    .nav-item .count { min-width: 21px; border-radius: 999px; background: #dce8e0; color: var(--emerald-dark); font-family: var(--display); }
+    .nav-rule { margin: 20px 12px; }
+    .support-card { border-radius: 12px; background: #eff3ef; color: var(--ink); }
+    .support-card::after { display: none; }
+    .support-card p { color: var(--muted); }
+    .support-card button { color: var(--emerald-dark); font-family: var(--display); }
+    .main { width: 100%; max-width: 1480px; margin: 0 auto; padding: clamp(30px, 3.5vw, 52px); }
+    .view { animation-duration: .24s; }
+    .page-heading { margin-bottom: 28px; }
+    .page-heading h1 { margin-top: 7px; font-family: var(--serif); font-size: clamp(38px, 3.5vw, 52px); font-weight: 500; letter-spacing: -.04em; }
+    .overline { color: var(--emerald-dark); font-size: 9px; }
+    .date-stamp { font-size: 10px; }
+    .overview-grid { gap: 18px; }
+    .balance-card { min-height: 270px; padding: clamp(28px, 3vw, 40px); border-radius: 16px; background: #173c2b; color: #fff; box-shadow: 0 16px 40px rgba(23,60,43,.16); }
+    .balance-card::before, .balance-card::after { display: none; }
+    .card-topline span { color: #b8ccc0; font-family: var(--display); letter-spacing: .06em; }
+    .verified-pill { color: #b8ddc6 !important; }
+    .verified-pill i { border-radius: 50%; }
+    .balance-number { margin: 46px 0 43px; font-family: var(--serif); font-size: clamp(58px, 5vw, 76px); font-weight: 500; letter-spacing: -.05em; }
+    .balance-number small { color: #a9cdb8; font-family: var(--display); font-size: 10px; }
+    .balance-foot span { color: #91ad9d; font-family: var(--display); }
+    .balance-foot strong { font-family: var(--display); }
+    .quick-card, .panel, .large-panel { border-radius: 14px; overflow: hidden; box-shadow: 0 1px 2px rgba(24,32,28,.03); }
+    .quick-title { padding: 20px; }
+    .quick-action { min-height: 100px; padding: 18px; }
+    .quick-action:hover { background: #f5f8f5; }
+    .quick-action svg { color: var(--emerald); }
+    .stats-row { gap: 14px; background: transparent; border: 0; }
+    .stat { border: 1px solid var(--line); border-radius: 13px; padding: 21px; }
+    .stat-value { font-family: var(--serif); font-size: 25px; font-weight: 600; }
+    .trend { background: #e8f1eb; color: var(--emerald-dark); }
+    .trend.down { background: #f5e9e7; }
+    .content-grid { gap: 18px; }
+    .panel-head { min-height: 64px; }
+    .panel-head h2 { font-size: 14px; }
+    .text-btn { font-family: var(--display); font-size: 9px; letter-spacing: .04em; }
+    .transaction-table th { background: #fafbfa; font-family: var(--display); font-size: 9px; letter-spacing: .05em; }
+    .transaction-table td { padding-top: 15px; padding-bottom: 15px; }
+    .txn-icon { border-radius: 9px; background: #edf0ec; font-family: var(--display); }
+    .txn-title small, .type-chip, .amount { font-family: var(--display); }
+    .type-chip { background: #eef1ee; }
+    .connection-hero { border-radius: 11px; background: #f3f6f3; }
+    .connection-icon { border-radius: 9px; background: var(--emerald-soft); color: var(--emerald-dark); }
+    .connection-row small, .connection-list strong { font-family: var(--display); }
+    .mini-chart i { border-radius: 3px 3px 0 0; }
+    .search-box, .filter-select, .setting-select { border-radius: 9px; }
+    .pay-grid { gap: 18px; }
+    .pay-form h2 { font-family: var(--serif); font-size: 29px; font-weight: 600; }
+    .recipient-preview { border-radius: 15px; background: #173c2b; }
+    .recipient-preview::after { display: none; }
+    .preview-label, .preview-recipient small { font-family: var(--display); }
+    .preview-amount { font-family: var(--serif); font-weight: 500; }
+    .preview-avatar { border-radius: 10px; background: #e4efe7; color: #173c2b; }
+    .empty-view .pixel-art { border-radius: 50%; background: #edf3ef; }
+    .empty-view h2 { font-family: var(--serif); font-size: 29px; font-weight: 600; }
+    .drawer { width: min(100%,500px); padding: 34px; border-radius: 20px 0 0 20px; }
+    .drawer-head h2, .receipt h3 { font-family: var(--serif); font-weight: 600; }
+    .close-btn { border-radius: 9px; }
+    .command-box { border-radius: 12px; background: #202a24; }
+    .command-box .label, .command-line { font-family: var(--display); }
+    .info-box { border-radius: 8px; background: #edf1eb; }
+    .receipt-check { border-radius: 50%; box-shadow: none; background: var(--emerald-soft); color: var(--emerald-dark); }
+    .toast { border-radius: 999px; background: #202a24; }
+    .settings-grid { gap: 18px; }
+    .setting-select { background: var(--white); }
+    .switch { border-radius: 999px; }
+    .switch i { border-radius: 50%; }
+    .side-accounts { display: grid; gap: 7px; padding: 0 3px; }
+    .side-account { width: 100%; border: 1px solid var(--line); border-radius: 10px; background: var(--white); padding: 11px 12px; display: flex; align-items: center; gap: 10px; color: var(--ink); text-align: left; }
+    .side-account:hover { border-color: #b9c4bd; }
+    .side-account.active { border-color: #a7cbb7; background: var(--emerald-soft); }
+    .account-symbol { width: 28px; height: 28px; flex: 0 0 auto; border-radius: 8px; background: #edf1ee; color: var(--emerald-dark); display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+    .side-account.active .account-symbol { background: var(--white); }
+    .side-account-copy { min-width: 0; display: grid; gap: 3px; }
+    .side-account-copy span { color: var(--muted); font-size: 9px; }
+    .side-account-copy strong { font-size: 11px; font-variant-numeric: tabular-nums; }
+    .account-move-link { width: 100%; height: 34px; border: 0; background: transparent; color: var(--emerald-dark); text-align: left; padding: 0 10px; font-size: 10px; font-weight: 600; }
+    .account-tabs { display: inline-flex; gap: 4px; margin-top: 24px; padding: 4px; border: 1px solid rgba(255,255,255,.16); border-radius: 10px; position: relative; z-index: 1; }
+    .account-tab { height: 34px; border: 0; border-radius: 7px; padding: 0 15px; background: transparent; color: #b8ccc0; font-size: 10px; font-weight: 600; }
+    .account-tab.active { background: #fff; color: #173c2b; }
+    .account-move-btn { width: 100%; min-height: 42px; border: 0; border-top: 1px solid var(--line); background: #fafbfa; color: var(--emerald-dark); font-size: 10px; font-weight: 600; }
+    .account-move-btn:hover { background: var(--emerald-soft); }
+    .balance-card .balance-number { margin-top: 30px; margin-bottom: 34px; }
+    .quick-card { min-height: 100%; }
+    .drawer-account-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .drawer-account-wrap { margin-bottom: 20px; }
+    .drawer-account-grid .text-input, .drawer-account-wrap .text-input { height: 48px; }
+    body[data-theme="midnight"] .top-header { background: rgba(19,28,22,.96); color: var(--ink); }
+    body[data-theme="midnight"] .server-status,
+    body[data-theme="midnight"] .support-card,
+    body[data-theme="midnight"] .connection-hero,
+    body[data-theme="midnight"] .api-listener,
+    body[data-theme="midnight"] .info-box { background: #1b2720; }
+    body[data-theme="midnight"] .transaction-table th { background: #172019; }
+    body[data-theme="midnight"] .quick-action:hover { background: #1a251e; }
+    body[data-theme="midnight"] .auth-panel { background: #0f1712; }
+    body[data-theme="midnight"] .login-card { border-color: #29362d; }
+    body[data-theme="midnight"] .auth-panel::before { color: #86938a; }
+    body[data-theme="midnight"] .account-move-btn { background: #172019; }
+    body[data-theme="midnight"] .account-symbol { background: #233027; }
+
+    @media (max-width: 1100px) {
+      .auth-screen { grid-template-columns: 1fr 440px; }
+      .auth-copy h1 { font-size: clamp(48px, 6vw, 76px); }
+      .overview-grid, .content-grid { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: 1fr; }
+      .pay-grid { grid-template-columns: 1fr; }
+      .settings-grid { grid-template-columns: 1fr; }
+      .recipient-preview { min-height: 280px; }
+    }
+    @media (max-width: 820px) {
+      .auth-screen { display: block; }
+      .auth-story { min-height: 44vh; padding: 30px; }
+      .auth-copy { padding: 80px 0 40px; }
+      .auth-copy h1 { max-width: 560px; font-size: clamp(46px, 12vw, 70px); }
+      .auth-panel { min-height: 56vh; padding: 28px 18px 50px; }
+      .app-layout { grid-template-columns: 1fr; }
+      .sidebar { position: fixed; z-index: 50; left: 0; right: 0; bottom: 0; top: auto; height: 66px; padding: 7px; border-right: 0; border-top: 1px solid var(--line); }
+      .nav-label, .nav-rule, .support-card, .side-accounts, .nav-item:nth-child(4), .nav-item:nth-child(5) { display: none; }
+      .side-nav { grid-template-columns: repeat(3,1fr); }
+      .nav-item { height: 50px; justify-content: center; padding: 0 8px; font-size: 10px; flex-direction: column; gap: 4px; }
+      .nav-item.active::before { left: 20%; right: 20%; top: -7px; bottom: auto; width: auto; height: 3px; }
+      .main { padding-bottom: 95px; }
+      .header-divider, .server-status, .citizen-chip div { display: none; }
+      .top-header { padding: 0 18px; }
+      .transaction-table th:nth-child(2), .transaction-table td:nth-child(2) { display: none; }
+    }
+    @media (max-width: 560px) {
+      .auth-story { min-height: 40vh; }
+      .server-strip { display: none; }
+      .login-card { padding: 28px 22px; }
+      .main { padding: 25px 16px 90px; }
+      .page-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
+      .balance-card { min-height: 270px; }
+      .balance-number { font-size: 49px; }
+      .balance-foot { gap: 18px; }
+      .quick-actions { grid-template-columns: 1fr 1fr; }
+      .stat { padding: 18px; }
+      .content-grid { grid-template-columns: minmax(0,1fr); }
+      .panel { overflow: hidden; }
+      .transaction-table th, .transaction-table td { padding-left: 12px; padding-right: 12px; }
+      .transaction-table th:nth-child(3), .transaction-table td:nth-child(3) { display: none; }
+      .field-row { grid-template-columns: 1fr; }
+      .form-actions { flex-direction: column; }
+      .form-actions .primary-btn { width: 100%; }
+      .drawer { padding: 25px 20px; }
+      .amount-preset { grid-template-columns: repeat(2,1fr); }
+      .confirm-block { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <section class="screen auth-screen" id="auth-screen" aria-label="Sign in to DC Cash">
+    <div class="auth-story">
+      <div class="brand">
+        <span class="brand-mark">DC</span>
+        <span>DC Cash<small class="brand-sub">DemocracyCraft Banking</small></span>
+      </div>
+      <div class="auth-copy">
+        <div class="kicker">Banking for DemocracyCraft</div>
+        <h1>A better way to bank<br><span>in Redmont.</span></h1>
+        <p>One straightforward place to deposit, withdraw, send, and manage money across the DemocracyCraft economy.</p>
+      </div>
+      <div class="server-strip">
+        <span><i class="live-dot"></i> Network online</span>
+        <span>Java 1.21.8</span>
+        <span>Bedrock supported</span>
+        <span class="mono">play.democracycraft.net</span>
+      </div>
+      <div class="skyline" aria-hidden="true"><i class="building"></i><i class="building"></i><i class="building"></i><i class="building"></i></div>
+    </div>
+
+    <div class="auth-panel">
+      <form class="login-card" id="username-form">
+        <div class="step-count">Secure account access</div>
+        <h2>Enter your citizen.</h2>
+        <p class="lead">Returning users sign in with a five-digit PIN. New users verify through Firm first.</p>
+        <label class="field-label" for="username"><span>Minecraft username</span><small>Java or Bedrock</small></label>
+        <div class="input-wrap"><span class="input-prefix">@</span><input class="text-input prefixed" id="username" maxlength="16" autocomplete="username" placeholder="YourUsername" value="AlexBuilds" /></div>
+        <p class="form-error" id="username-error" role="alert"></p>
+        <button class="primary-btn" type="submit">Continue <span aria-hidden="true">&#8594;</span></button>
+        <div class="security-note">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="8" width="12" height="8"/><path d="M6 8V5a3 3 0 0 1 6 0v3"/></svg>
+          <span>We verify ownership in-game. Your Minecraft password is never requested or stored.</span>
+        </div>
+      </form>
+
+      <div class="login-card hidden" id="firm-verification-card">
+        <div class="step-count">New account / Step 02 of 03</div>
+        <h2>Verify through Firm.</h2>
+        <p class="lead">Pay the exact random amount below from your Minecraft account. The API will match the Firm transaction to your username.</p>
+        <div class="verification-amount"><span>One-time verification amount</span><strong id="verification-amount">$0.47</strong></div>
+        <div class="verify-command"><span id="verify-command">firm pay hiss 0.47</span><button class="copy-mini" type="button" data-copy-command>Copy</button></div>
+        <div class="api-listener" id="verification-listener"><div class="api-listener-main"><i class="listener-ring"></i><div><strong id="verification-status">Waiting for Firm payment</strong><small id="verification-detail">API listener placeholder</small></div></div><span class="prototype-badge">API pending</span></div>
+        <button class="primary-btn" id="simulate-verification" type="button">Simulate matched payment <span aria-hidden="true">&#8594;</span></button>
+        <button class="back-link" data-back-to-username type="button">&#8592; Use a different username</button>
+      </div>
+
+      <form class="login-card hidden" id="pin-form">
+        <div class="step-count" id="pin-step-count">New account / Step 03 of 03</div>
+        <h2 id="pin-title">Create your PIN.</h2>
+        <p class="lead" id="pin-lead">Set the five-digit code you will use every time you sign in.</p>
+        <label class="field-label" for="pin"><span>Five-digit PIN</span><small>Numbers only</small></label>
+        <input class="text-input pin-input" id="pin" inputmode="numeric" maxlength="5" autocomplete="one-time-code" placeholder="00000" />
+        <div id="pin-confirm-wrap" style="margin-top:16px"><label class="field-label" for="pin-confirm"><span>Confirm PIN</span></label><input class="text-input pin-input" id="pin-confirm" inputmode="numeric" maxlength="5" placeholder="00000" /></div>
+        <p class="form-error" id="pin-error" role="alert"></p>
+        <button class="primary-btn" id="pin-submit-label" type="submit">Create PIN and open account <span aria-hidden="true">&#8594;</span></button>
+        <button class="back-link" data-back-to-username type="button">&#8592; Use a different username</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="screen dashboard hidden" id="dashboard-screen" aria-label="DC Cash account">
+    <header class="top-header">
+      <div class="header-left">
+        <div class="brand"><span class="brand-mark">DC</span><span>DC Cash</span></div>
+        <span class="header-divider"></span>
+        <span class="server-status"><i class="live-dot"></i> Firm API integration pending</span>
+      </div>
+      <div class="header-right">
+        <button class="header-action" data-toast="No new notifications" aria-label="Notifications"><span class="alert-dot"></span><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 13h10l-1.2-2V7a3.8 3.8 0 0 0-7.6 0v4L4 13Z"/><path d="M7 15a2 2 0 0 0 4 0"/></svg></button>
+        <div class="citizen-chip"><span class="mc-avatar"></span><div><strong id="header-username">AlexBuilds</strong><small>Verified citizen</small></div></div>
+      </div>
+    </header>
+
+    <div class="app-layout">
+      <aside class="sidebar">
+        <p class="nav-label">Account</p>
+        <nav class="side-nav" aria-label="Account navigation">
+          <button class="nav-item active" data-view="overview"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9 9 4l6 5v6H3z"/><path d="M7 15v-4h4v4"/></svg><span>Overview</span></button>
+          <button class="nav-item" data-view="activity"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 5h12M3 9h12M3 13h8"/></svg><span>Activity</span><span class="count">6</span></button>
+          <button class="nav-item" data-view="pay"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 9 12-6-4 12-2-4-6-2Z"/></svg><span>Send & request</span></button>
+          <button class="nav-item" data-view="vault"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="12" height="12"/><circle cx="9" cy="9" r="3"/><path d="M9 6V4m3.2 5H15M9 12v2M5.8 9H3"/></svg><span>Vaults</span></button>
+          <button class="nav-item" data-view="settings"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="9" r="2.5"/><path d="M9 2v2m0 10v2M2 9h2m10 0h2M4 4l1.5 1.5m7 7L14 14m0-10-1.5 1.5m-7 7L4 14"/></svg><span>Settings</span></button>
+        </nav>
+        <div class="nav-rule"></div>
+        <p class="nav-label">Accounts</p>
+        <div class="side-accounts">
+          <button class="side-account account-choice active" data-account="checking"><span class="account-symbol">C</span><span class="side-account-copy"><span>Checking</span><strong id="side-checking-balance">$2,846.20</strong></span></button>
+          <button class="side-account account-choice" data-account="savings"><span class="account-symbol">S</span><span class="side-account-copy"><span>Savings</span><strong id="side-savings-balance">$1,200.00</strong></span></button>
+          <button class="account-move-link" data-drawer="move">Move between accounts &#8594;</button>
+        </div>
+        <div class="nav-rule"></div>
+        <p class="nav-label">Community</p>
+        <nav class="side-nav" aria-label="Community links">
+          <button class="nav-item" data-toast="Forum link ready"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 4h12v9H8l-3 2v-2H3z"/></svg><span>DC Forums</span></button>
+          <button class="nav-item" data-toast="Economy guide opened"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 4h5a2 2 0 0 1 2 2v9a2 2 0 0 0-2-2H3z"/><path d="M15 4h-3a2 2 0 0 0-2 2v9a2 2 0 0 1 2-2h3z"/></svg><span>Economy guide</span></button>
+        </nav>
+        <div class="support-card"><strong>Need a hand?</strong><p>Use <span class="mono">/ticket</span> in-game or contact server support.</p><button data-toast="Support instructions copied">Open support &#8594;</button></div>
+      </aside>
+
+      <main class="main">
+        <section class="view active" data-view-panel="overview">
+          <div class="page-heading"><div><span class="overline">Overview</span><h1>Good evening, <span id="greeting-name">Alex</span>.</h1></div><span class="date-stamp" id="date-stamp">18 JUL 2026</span></div>
+          <div class="overview-grid">
+            <article class="balance-card">
+              <div class="card-topline"><span id="balance-account-label">Checking balance</span><span class="verified-pill"><i></i> In-game verified</span></div>
+              <div class="account-tabs" role="tablist" aria-label="Choose account"><button class="account-tab account-choice active" data-account="checking" role="tab" aria-selected="true">Checking</button><button class="account-tab account-choice" data-account="savings" role="tab" aria-selected="false">Savings</button></div>
+              <div class="balance-number"><span id="balance-display">$2,846.20</span> <small>DC$</small></div>
+              <div class="balance-foot"><div><span>Account ID</span><strong id="account-id">DC-C-045821</strong></div><div><span>Last synced</span><strong>Just now</strong></div></div>
+            </article>
+
+            <article class="quick-card">
+              <div class="quick-title">Move your money</div>
+              <div class="quick-actions">
+                <button class="quick-action" data-drawer="deposit"><svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.5 3v15M3 10.5h15"/></svg><span>Deposit</span></button>
+                <button class="quick-action" data-drawer="withdraw"><svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5h15"/></svg><span>Withdraw</span></button>
+                <button class="quick-action" data-view="pay"><svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 11 15-7-5 15-2.5-6L3 11Z"/></svg><span>Send</span></button>
+                <button class="quick-action" data-action="request"><svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 10-15 7L8 2l2.5 6L18 10Z"/></svg><span>Request</span></button>
+              </div>
+              <button class="account-move-btn" data-drawer="move">Move money between checking and savings &#8594;</button>
+            </article>
+
+            <div class="stats-row">
+              <div class="stat"><div><div class="stat-label">Money in this month</div><div class="stat-value">$1,425.00</div></div><span class="trend">+18.4%</span></div>
+              <div class="stat"><div><div class="stat-label">Money out this month</div><div class="stat-value">$673.40</div></div><span class="trend down">-6.2%</span></div>
+              <div class="stat"><div><div class="stat-label">Net server income</div><div class="stat-value">+$751.60</div></div><span class="trend">Healthy</span></div>
+            </div>
+
+            <div class="content-grid">
+              <section class="panel">
+                <div class="panel-head"><h2>Recent activity</h2><button class="text-btn" data-view="activity">View all activity &#8594;</button></div>
+                <div style="overflow-x:auto"><table class="transaction-table"><thead><tr><th>Transaction</th><th>Type</th><th>Date</th><th style="text-align:right">Amount</th></tr></thead><tbody id="overview-transactions"></tbody></table></div>
+              </section>
+              <aside class="panel">
+                <div class="panel-head"><h2>Server connection</h2><span class="prototype-badge">API pending</span></div>
+                <div class="connection-body">
+                  <div class="connection-hero"><div class="connection-row"><span class="connection-icon"><svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h13v13H4zM8 4v4H4m13 2h-4v7M8 12h3v5"/></svg></span><div><strong>DemocracyCraft</strong><small>play.democracycraft.net</small></div></div></div>
+                  <div class="connection-list"><div><span>Minecraft user</span><strong id="connection-user">AlexBuilds</strong></div><div><span>Account state</span><strong style="color:var(--emerald-dark)">FIRM VERIFIED</strong></div><div><span>Transaction listener</span><strong>PROTOTYPE</strong></div></div>
+                  <div class="mini-chart" aria-label="Seven-day balance activity"><i style="--h:33%"></i><i style="--h:48%"></i><i style="--h:41%"></i><i style="--h:58%"></i><i style="--h:55%"></i><i style="--h:72%"></i><i style="--h:66%"></i><i style="--h:85%"></i><i style="--h:77%"></i><i style="--h:92%"></i></div>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" data-view-panel="activity">
+          <div class="page-heading"><div><span class="overline">Account ledger</span><h1>Activity</h1></div><div class="toolbar"><input class="search-box" id="activity-search" placeholder="Search transactions" aria-label="Search transactions"><select class="filter-select" id="activity-filter" aria-label="Filter transaction type"><option value="all">All types</option><option value="deposit">Deposits</option><option value="withdrawal">Withdrawals</option><option value="payment">Payments</option><option value="request">Requests</option><option value="transfer">Account transfers</option></select></div></div>
+          <section class="large-panel"><div class="panel-head"><h2>Account ledger</h2><button class="text-btn" data-toast="Statement export prepared">Export statement</button></div><div style="overflow-x:auto"><table class="transaction-table"><thead><tr><th>Transaction</th><th>Type</th><th>Date</th><th style="text-align:right">Amount</th></tr></thead><tbody id="activity-transactions"></tbody></table></div></section>
+        </section>
+
+        <section class="view" data-view-panel="pay">
+          <div class="page-heading"><div><span class="overline">Transfers</span><h1>Send & request</h1></div><span class="date-stamp">AVAILABLE <strong id="pay-balance">$2,846.20</strong></span></div>
+          <div class="pay-grid">
+            <section class="large-panel pay-form">
+              <h2>Move DC Cash</h2><p>Send money to another verified DemocracyCraft citizen or request payment from them.</p>
+              <form class="form-grid" id="payment-form">
+                <div class="field-row"><div><label class="field-label" for="transfer-type"><span>Transfer type</span></label><select class="text-input select-input" id="transfer-type"><option value="send">Send money</option><option value="request">Request money</option></select></div><div><label class="field-label" for="source-account"><span>Pay from</span></label><select class="text-input select-input" id="source-account"><option value="checking">Checking</option><option value="savings">Savings</option></select></div></div>
+                <div><label class="field-label" for="recipient"><span>Citizen username</span><small>Must be verified</small></label><div class="input-wrap"><span class="input-prefix">@</span><input class="text-input prefixed" id="recipient" value="MayorMia" placeholder="Username"></div></div>
+                <div class="field-row">
+                  <div class="amount-entry"><label class="field-label" for="transfer-amount"><span>Amount</span></label><span class="dollar">$</span><input class="text-input" id="transfer-amount" type="number" min="0.01" step="0.01" value="85.00"></div>
+                  <div><label class="field-label" for="transfer-note"><span>Note</span></label><input class="text-input" id="transfer-note" value="Shop supplies" placeholder="What's it for?"></div>
+                </div>
+                <p class="form-error" id="payment-error"></p>
+                <div class="form-actions"><button class="primary-btn" type="submit">Review transfer &#8594;</button><button class="ghost-btn" type="button" data-action="clear-payment">Clear</button></div>
+              </form>
+            </section>
+            <aside class="recipient-preview"><div><span class="preview-label">Transfer preview</span><div class="preview-amount" id="preview-amount">$85.00</div><div class="preview-note" id="preview-note">Shop supplies</div><div class="preview-note" id="preview-source" style="margin-top:8px">From checking</div></div><div class="preview-recipient"><span class="preview-avatar" id="preview-avatar">MM</span><div><strong id="preview-recipient">@MayorMia</strong><small>Verified DemocracyCraft citizen</small></div></div></aside>
+          </div>
+        </section>
+
+        <section class="view" data-view-panel="vault">
+          <div class="page-heading"><div><span class="overline">Savings</span><h1>Vaults</h1></div></div>
+          <section class="large-panel empty-view"><div><div class="pixel-art"><svg width="37" height="37" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="27" height="27"/><circle cx="18.5" cy="18.5" r="7"/><path d="M18.5 11.5v4m7 3h-4m-3 7v-4m-7-3h4"/></svg></div><h2>Save for the next big build.</h2><p>Create dedicated vaults for property, business stock, campaign costs, or anything else you are working toward in Redmont.</p><button class="secondary-btn" data-toast="Vault creation is ready for backend integration">Create your first vault</button></div></section>
+        </section>
+
+        <section class="view" data-view-panel="settings">
+          <div class="page-heading"><div><span class="overline">Preferences</span><h1>Settings</h1></div></div>
+          <div class="settings-grid">
+            <section class="large-panel"><div class="panel-head"><h2>Appearance</h2></div><div class="setting-list">
+              <div class="setting-row"><div><strong>Theme</strong><small>Change the bank terminal color system.</small></div><select class="setting-select" id="theme-select"><option value="parchment">Redmont parchment</option><option value="midnight">Midnight terminal</option><option value="civic">Civic blueprint</option></select></div>
+              <div class="setting-row"><div><strong>Hide balance</strong><small>Blur your balance in shared spaces.</small></div><button class="switch" id="balance-privacy" aria-label="Toggle balance privacy" aria-pressed="false"><i></i></button></div>
+              <div class="setting-row"><div><strong>Compact ledger</strong><small>Show more transactions on screen.</small></div><button class="switch" id="compact-mode" aria-label="Toggle compact ledger" aria-pressed="false"><i></i></button></div>
+            </div></section>
+            <section class="large-panel"><div class="panel-head"><h2>Security & connection</h2></div><div class="pay-form form-grid">
+              <div><label class="field-label"><span>Connected Minecraft account</span><small>Firm verified</small></label><input class="text-input" id="settings-username" value="AlexBuilds" readonly></div>
+              <form class="form-grid" id="change-pin-form"><div class="field-row"><div><label class="field-label" for="current-pin"><span>Current PIN</span></label><input class="text-input" id="current-pin" inputmode="numeric" maxlength="5" placeholder="5 digits"></div><div><label class="field-label" for="new-pin"><span>New PIN</span></label><input class="text-input" id="new-pin" inputmode="numeric" maxlength="5" placeholder="5 digits"></div></div><p class="form-error" id="change-pin-error"></p><button class="secondary-btn" type="submit">Update login PIN</button></form>
+              <div class="field-row"><button class="ghost-btn" type="button" id="reverify-account">Re-verify with Firm</button><button class="ghost-btn" id="sign-out" type="button">Sign out</button></div>
+            </div></section>
+          </div>
+        </section>
+      </main>
+    </div>
+  </section>
+
+  <div class="drawer-layer" id="drawer-layer" aria-hidden="true">
+    <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+      <div class="drawer-head"><div><span class="overline" id="drawer-overline">Move money</span><h2 id="drawer-title">Deposit</h2></div><button class="close-btn" data-close-drawer aria-label="Close"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 4 12 12M16 4 4 16"/></svg></button></div>
+      <div class="drawer-body" id="drawer-form-content">
+        <div class="drawer-account-wrap" id="drawer-account-wrap"><label class="field-label" for="drawer-account"><span>Account</span></label><select class="text-input select-input" id="drawer-account"><option value="checking">Checking</option><option value="savings">Savings</option></select></div>
+        <div class="drawer-account-grid hidden" id="move-account-fields"><div><label class="field-label" for="move-from-account"><span>From</span></label><select class="text-input select-input" id="move-from-account"><option value="checking">Checking</option><option value="savings">Savings</option></select></div><div><label class="field-label" for="move-to-account"><span>To</span></label><select class="text-input select-input" id="move-to-account"><option value="savings">Savings</option><option value="checking">Checking</option></select></div></div>
+        <label class="field-label" for="drawer-amount"><span id="drawer-amount-label">Deposit amount</span><small>DC$</small></label>
+        <div class="amount-entry"><span class="dollar">$</span><input class="text-input" id="drawer-amount" type="number" min="1" step="0.01" value="250.00"></div>
+        <div class="amount-preset"><button data-preset="50">$50</button><button data-preset="100">$100</button><button data-preset="250">$250</button><button data-preset="500">$500</button></div>
+        <div id="deposit-command-wrap">
+          <div class="command-box"><div class="label">Run this command in-game</div><div class="command-line"><span id="cash-command">firm pay hiss 250.00</span><button class="copy-mini" data-copy-cash-command>Copy</button></div></div>
+          <div class="api-listener"><div class="api-listener-main"><i class="listener-ring"></i><div><strong>Listening for your Firm payment</strong><small>Will be automatic when the transaction API is connected</small></div></div><span class="prototype-badge">API pending</span></div>
+          <div class="info-box">The listener checks the payer username and exact amount before crediting the deposit. This prototype simulates that match when you confirm.</div>
+        </div>
+        <div id="withdraw-info" class="info-box hidden">Withdrawals return DC Cash to your in-game balance. Review the username and amount before confirming.</div>
+        <p class="form-error" id="drawer-error"></p>
+        <div class="confirm-block"><button class="ghost-btn" data-close-drawer>Cancel</button><button class="primary-btn" id="drawer-confirm">Start deposit listener</button></div>
+      </div>
+      <div class="drawer-body receipt hidden" id="drawer-receipt"><div class="receipt-check"><svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m7 16 6 6L26 9"/></svg></div><h3 id="receipt-title">Deposit confirmed</h3><p id="receipt-copy">Your DC Cash balance has been updated.</p><button class="primary-btn" data-close-drawer style="margin-top:25px">Back to account</button></div>
+    </aside>
+  </div>
+
+  <div class="toast" id="toast" role="status"><i></i><span id="toast-text">Done</span></div>
+
+  <script>
+    const $ = (selector, root = document) => root.querySelector(selector);
+    const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+    const state = {
+      username: 'AlexBuilds', pin: '', authMode: 'setup', forceVerification: false, verificationId: null, verificationAmount: '0.47', depositRequestId: null, depositDemoEnabled: false, accounts: { checking: 2846.20, savings: 1200.00 }, activeAccount: 'checking', drawerMode: 'deposit',
+      get balance() { return this.accounts[this.activeAccount]; },
+      set balance(value) { this.accounts[this.activeAccount] = value; },
+      transactions: [
+        { title: 'Redmont Market', detail: '@MarketSquare', type: 'payment', date: 'Today, 18:42', amount: -42.50, icon: 'RM' },
+        { title: 'Business payroll', detail: 'Oak & Iron Co.', type: 'deposit', date: 'Today, 09:15', amount: 325.00, icon: 'OI' },
+        { title: 'District Treasury', detail: 'Tax rebate', type: 'deposit', date: 'Yesterday', amount: 125.00, icon: 'DT' },
+        { title: 'NoahBuilds', detail: 'Road materials', type: 'payment', date: '16 Jul 2026', amount: -78.20, icon: 'NB' },
+        { title: 'Citizen Rewards', detail: 'Voting participation', type: 'deposit', date: '12 Jul 2026', amount: 15.00, icon: 'CR' },
+        { title: 'In-game withdrawal', detail: 'To @AlexBuilds', type: 'withdrawal', date: '10 Jul 2026', amount: -200.00, icon: 'WD' }
+      ]
+    };
+
+    const money = n => `${n < 0 ? '-' : ''}$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const escapeHTML = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+    let toastTimer;
+    let countdownTimer;
+
+    function toast(message) {
+      $('#toast-text').textContent = message;
+      $('#toast').classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => $('#toast').classList.remove('show'), 2400);
+    }
+
+    function readProfile() { try { return JSON.parse(localStorage.getItem('dcCashProfile') || 'null'); } catch { return null; } }
+    function saveProfile(profile) { try { localStorage.setItem('dcCashProfile', JSON.stringify(profile)); } catch {} }
+    function readSettings() { try { return JSON.parse(localStorage.getItem('dcCashSettings') || '{}'); } catch { return {}; } }
+    function saveSettings(settings) { try { localStorage.setItem('dcCashSettings', JSON.stringify(settings)); } catch {} }
+    function readBalances() { try { return JSON.parse(localStorage.getItem('dcCashBalances') || 'null'); } catch { return null; } }
+    function saveBalances() { try { localStorage.setItem('dcCashBalances', JSON.stringify(state.accounts)); } catch {} }
+    function accountName(key) { return key === 'savings' ? 'Savings' : 'Checking'; }
+    const apiEnabled = location.protocol === 'http:' || location.protocol === 'https:';
+    let verificationPoll;
+    async function apiRequest(url, options = {}) {
+      const response = await fetch(url, {
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+        ...options
+      });
+      const payload = response.status === 204 ? null : await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload?.error || `Request failed (${response.status}).`);
+      return payload;
+    }
+    function applyServerState(payload) {
+      if (!payload) return;
+      if (payload.user?.username) state.username = payload.user.username;
+      if (payload.accounts?.checking && payload.accounts?.savings) {
+        state.accounts = {
+          checking: Number(payload.accounts.checking.balance),
+          savings: Number(payload.accounts.savings.balance)
+        };
+      }
+    }
+    function serverTransactionToUi(row) {
+      const labels = { deposit: 'Firm deposit', withdrawal: 'In-game withdrawal', payment: row.counterparty || 'Payment', request: row.counterparty || 'Payment request', transfer_in: 'Account transfer', transfer_out: 'Account transfer' };
+      const uiType = row.type.startsWith('transfer_') ? 'transfer' : row.type;
+      const account = row.account ? accountName(row.account) : '';
+      return {
+        title: labels[row.type] || 'Transaction',
+        detail: [account, row.note, row.status !== 'completed' ? row.status : ''].filter(Boolean).join(' / '),
+        type: uiType,
+        date: new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(row.createdAt)),
+        amount: Number(row.amount),
+        pending: row.status === 'pending' && row.type === 'request',
+        icon: row.type === 'deposit' ? 'IN' : row.type === 'withdrawal' ? 'OUT' : row.type.startsWith('transfer_') ? 'AT' : (row.counterparty || 'DC').slice(0, 2).toUpperCase()
+      };
+    }
+    async function loadServerTransactions() {
+      if (!apiEnabled) return;
+      const rows = await apiRequest('/api/transactions');
+      state.transactions = rows.map(serverTransactionToUi);
+    }
+    function advanceToPinSetup() {
+      clearInterval(verificationPoll);
+      $('#pin-step-count').textContent = 'New account / Step 03 of 03';
+      $('#pin-title').textContent = 'Create your PIN.';
+      $('#pin-lead').textContent = 'Set the five-digit code you will use every time you sign in.';
+      $('#pin-confirm-wrap').classList.remove('hidden');
+      $('#pin-submit-label').innerHTML = 'Create PIN and open account <span aria-hidden="true">&#8594;</span>';
+      showAuthCard('#pin-form');
+      $('#pin').focus();
+    }
+    function startVerificationPolling() {
+      clearInterval(verificationPoll);
+      verificationPoll = setInterval(async () => {
+        try {
+          const result = await apiRequest(`/api/auth/verifications/${state.verificationId}`);
+          if (result.status === 'matched') {
+            $('#verification-listener').classList.add('matched');
+            $('#verification-status').textContent = 'Firm payment matched';
+            $('#verification-detail').textContent = `hiss received $${state.verificationAmount} from ${state.username}`;
+            advanceToPinSetup();
+          } else if (result.status === 'expired') {
+            clearInterval(verificationPoll);
+            $('#verification-status').textContent = 'Verification expired';
+            $('#verification-detail').textContent = 'Return and request a new amount.';
+          }
+        } catch {}
+      }, 2500);
+    }
+    function randomVerificationAmount() { return (Math.floor(Math.random() * 99) + 1).toString().padStart(2, '0'); }
+    function showAuthCard(card) {
+      ['#username-form', '#firm-verification-card', '#pin-form'].forEach(selector => $(selector).classList.toggle('hidden', selector !== card));
+    }
+    function openDashboard(message) {
+      $('#auth-screen').classList.add('hidden');
+      $('#dashboard-screen').classList.remove('hidden');
+      hydrateUsername();
+      renderTransactions();
+      if (message) toast(message);
+    }
+
+    $('#username-form').addEventListener('submit', async event => {
+      event.preventDefault();
+      const username = $('#username').value.trim();
+      if (!/^[A-Za-z0-9_]{3,16}$/.test(username)) {
+        $('#username-error').textContent = 'Use a valid 3-16 character Minecraft username.';
+        return;
+      }
+      state.username = username;
+      $('#username-error').textContent = '';
+      if (apiEnabled) {
+        try {
+          const result = await apiRequest('/api/auth/start', { method: 'POST', body: JSON.stringify({ username, forceVerification: state.forceVerification }) });
+          if (result.mode === 'login') {
+            state.authMode = 'login';
+            $('#pin-step-count').textContent = 'Returning citizen / Step 02 of 02';
+            $('#pin-title').textContent = 'Welcome back.';
+            $('#pin-lead').textContent = 'Enter your five-digit account PIN.';
+            $('#pin-confirm-wrap').classList.add('hidden');
+            $('#pin-submit-label').innerHTML = 'Sign in to account <span aria-hidden="true">&#8594;</span>';
+            showAuthCard('#pin-form');
+            $('#pin').focus();
+            return;
+          }
+          state.authMode = 'setup';
+          state.verificationId = result.verificationId;
+          state.verificationAmount = Number(result.amount).toFixed(2);
+          $('#verification-amount').textContent = `$${state.verificationAmount}`;
+          $('#verify-command').textContent = result.command;
+          $('#verification-listener').classList.remove('matched');
+          $('#verification-status').textContent = 'Waiting for Firm payment';
+          $('#verification-detail').textContent = 'Database listener active for 5 minutes';
+          $('#simulate-verification').disabled = !result.demoEnabled;
+          $('#simulate-verification').innerHTML = result.demoEnabled ? 'Simulate matched payment <span aria-hidden="true">&#8594;</span>' : 'Waiting for Firm API';
+          showAuthCard('#firm-verification-card');
+          startVerificationPolling();
+          return;
+        } catch (error) {
+          $('#username-error').textContent = error.message;
+          return;
+        }
+      }
+      const profile = readProfile();
+      if (!state.forceVerification && profile && profile.username.toLowerCase() === username.toLowerCase()) {
+        state.authMode = 'login';
+        state.pin = String(profile.pin);
+        $('#pin-step-count').textContent = 'Returning citizen / Step 02 of 02';
+        $('#pin-title').textContent = 'Welcome back.';
+        $('#pin-lead').textContent = 'Enter the five-digit PIN you set after Firm verification.';
+        $('#pin-confirm-wrap').classList.add('hidden');
+        $('#pin-submit-label').innerHTML = 'Sign in to account <span aria-hidden="true">&#8594;</span>';
+        showAuthCard('#pin-form');
+        $('#pin').focus();
+        return;
+      }
+      state.authMode = 'setup';
+      state.verificationAmount = `0.${randomVerificationAmount()}`;
+      $('#verification-amount').textContent = `$${state.verificationAmount}`;
+      $('#verify-command').textContent = `firm pay hiss ${state.verificationAmount}`;
+      $('#verification-listener').classList.remove('matched');
+      $('#verification-status').textContent = 'Waiting for Firm payment';
+      $('#verification-detail').textContent = 'API listener placeholder';
+      $('#simulate-verification').disabled = false;
+      $('#simulate-verification').innerHTML = 'Simulate matched payment <span aria-hidden="true">&#8594;</span>';
+      showAuthCard('#firm-verification-card');
+    });
+
+    $$('[data-back-to-username]').forEach(button => button.addEventListener('click', () => {
+      clearInterval(verificationPoll);
+      state.verificationId = null;
+      showAuthCard('#username-form');
+      $('#pin').value = '';
+      $('#pin-confirm').value = '';
+      $('#pin-error').textContent = '';
+      state.forceVerification = false;
+    }));
+
+    $('#simulate-verification').addEventListener('click', async () => {
+      if (apiEnabled) {
+        try {
+          $('#simulate-verification').disabled = true;
+          await apiRequest(`/api/auth/verifications/${state.verificationId}/simulate`, { method: 'POST', body: '{}' });
+          $('#verification-listener').classList.add('matched');
+          $('#verification-status').textContent = 'Firm payment matched';
+          $('#verification-detail').textContent = `hiss received $${state.verificationAmount} from ${state.username}`;
+          $('#simulate-verification').textContent = 'Identity verified';
+          setTimeout(advanceToPinSetup, 450);
+        } catch (error) {
+          $('#verification-detail').textContent = error.message;
+          $('#simulate-verification').disabled = false;
+        }
+        return;
+      }
+      $('#simulate-verification').disabled = true;
+      $('#verification-listener').classList.add('matched');
+      $('#verification-status').textContent = 'Firm payment matched';
+      $('#verification-detail').textContent = `hiss received $${state.verificationAmount} from ${state.username}`;
+      $('#simulate-verification').textContent = 'Identity verified';
+      setTimeout(() => {
+        $('#pin-step-count').textContent = 'New account / Step 03 of 03';
+        $('#pin-title').textContent = 'Create your PIN.';
+        $('#pin-lead').textContent = 'Set the five-digit code you will use every time you sign in.';
+        $('#pin-confirm-wrap').classList.remove('hidden');
+        $('#pin-submit-label').innerHTML = 'Create PIN and open account <span aria-hidden="true">&#8594;</span>';
+        showAuthCard('#pin-form');
+        $('#pin').focus();
+      }, 600);
+    });
+
+    ['pin', 'pin-confirm', 'current-pin', 'new-pin'].forEach(id => $(`#${id}`).addEventListener('input', event => { event.target.value = event.target.value.replace(/\D/g, '').slice(0, 5); }));
+    $('#pin-form').addEventListener('submit', async event => {
+      event.preventDefault();
+      const enteredPin = $('#pin').value;
+      if (!/^\d{5}$/.test(enteredPin)) { $('#pin-error').textContent = 'Your PIN must contain exactly five numbers.'; return; }
+      if (apiEnabled) {
+        try {
+          let result;
+          if (state.authMode === 'login') {
+            result = await apiRequest('/api/auth/login', { method: 'POST', body: JSON.stringify({ username: state.username, pin: enteredPin }) });
+          } else {
+            if (enteredPin !== $('#pin-confirm').value) { $('#pin-error').textContent = 'The two PIN entries do not match.'; return; }
+            result = await apiRequest('/api/auth/set-pin', { method: 'POST', body: JSON.stringify({ verificationId: state.verificationId, pin: enteredPin }) });
+          }
+          applyServerState(result);
+          await loadServerTransactions();
+          state.forceVerification = false;
+          $('#pin-error').textContent = '';
+          openDashboard(state.authMode === 'login' ? `Welcome back, ${state.username}.` : `Welcome, ${state.username}. Firm account verified.`);
+        } catch (error) {
+          $('#pin-error').textContent = error.message;
+        }
+        return;
+      }
+      if (state.authMode === 'login') {
+        if (enteredPin !== state.pin) { $('#pin-error').textContent = 'That PIN is incorrect.'; return; }
+        $('#pin-error').textContent = '';
+        openDashboard(`Welcome back, ${state.username}.`);
+        return;
+      }
+      if (enteredPin !== $('#pin-confirm').value) { $('#pin-error').textContent = 'The two PIN entries do not match.'; return; }
+      state.pin = enteredPin;
+      saveProfile({ username: state.username, pin: state.pin, firmVerified: true });
+      state.forceVerification = false;
+      $('#pin-error').textContent = '';
+      openDashboard(`Welcome, ${state.username}. Firm account verified.`);
+    });
+
+    function hydrateUsername() {
+      const shortName = state.username.replace(/[_\d].*$/, '').slice(0, 10) || state.username;
+      $('#header-username').textContent = state.username;
+      $('#connection-user').textContent = state.username;
+      $('#settings-username').value = state.username;
+      $('#greeting-name').textContent = shortName;
+      $('#date-stamp').textContent = new Intl.DateTimeFormat('en-US', { day:'2-digit', month:'short', year:'numeric' }).format(new Date()).toUpperCase();
+    }
+
+    function selectAccount(key) {
+      if (!(key in state.accounts)) return;
+      state.activeAccount = key;
+      $('#source-account').value = key;
+      $('#drawer-account').value = key;
+      $$('.account-choice').forEach(button => {
+        const active = button.dataset.account === key;
+        button.classList.toggle('active', active);
+        if (button.getAttribute('role') === 'tab') button.setAttribute('aria-selected', String(active));
+      });
+      updatePaymentPreview();
+      renderTransactions();
+    }
+
+    function showView(name) {
+      $$('.view').forEach(panel => panel.classList.toggle('active', panel.dataset.viewPanel === name));
+      $$('.nav-item[data-view]').forEach(item => item.classList.toggle('active', item.dataset.view === name));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    $$('[data-view]').forEach(button => button.addEventListener('click', () => showView(button.dataset.view)));
+
+    function transactionRows(items) {
+      return items.map(txn => `<tr>
+        <td><div class="txn-title"><span class="txn-icon">${escapeHTML(txn.icon)}</span><div><strong>${escapeHTML(txn.title)}</strong><small>${escapeHTML(txn.detail)}</small></div></div></td>
+        <td><span class="type-chip">${escapeHTML(txn.type)}</span></td>
+        <td class="mono" style="color:var(--muted);font-size:10px">${escapeHTML(txn.date)}</td>
+        <td class="amount ${txn.amount > 0 && !txn.pending ? 'positive' : ''}">${txn.displayAmount || (txn.pending ? `${money(txn.amount)} requested` : `${txn.amount > 0 ? '+' : ''}${money(txn.amount)}`)}</td>
+      </tr>`).join('');
+    }
+    function renderTransactions() {
+      const search = ($('#activity-search')?.value || '').toLowerCase();
+      const filter = $('#activity-filter')?.value || 'all';
+      const filtered = state.transactions.filter(txn => (filter === 'all' || txn.type === filter) && `${txn.title} ${txn.detail}`.toLowerCase().includes(search));
+      $('#overview-transactions').innerHTML = transactionRows(state.transactions.slice(0, 4));
+      $('#activity-transactions').innerHTML = filtered.length ? transactionRows(filtered) : '<tr><td colspan="4" style="padding:40px;text-align:center;color:var(--muted)">No transactions match your search.</td></tr>';
+      $('#balance-display').textContent = money(state.balance);
+      $('#balance-account-label').textContent = `${accountName(state.activeAccount)} balance`;
+      $('#account-id').textContent = state.activeAccount === 'savings' ? 'DC-S-045821' : 'DC-C-045821';
+      $('#side-checking-balance').textContent = money(state.accounts.checking);
+      $('#side-savings-balance').textContent = money(state.accounts.savings);
+      $('#pay-balance').textContent = money(state.accounts[$('#source-account').value]);
+    }
+    $('#activity-search').addEventListener('input', renderTransactions);
+    $('#activity-filter').addEventListener('change', renderTransactions);
+    $$('.account-choice').forEach(button => button.addEventListener('click', () => selectAccount(button.dataset.account)));
+
+    function openDrawer(mode) {
+      state.drawerMode = mode;
+      state.depositRequestId = null;
+      state.depositDemoEnabled = false;
+      const isDeposit = mode === 'deposit';
+      const isWithdraw = mode === 'withdraw';
+      const isMove = mode === 'move';
+      $('#drawer-title').textContent = isMove ? 'Move money' : (isDeposit ? 'Deposit' : 'Withdraw');
+      $('#drawer-overline').textContent = isMove ? 'Between your accounts' : (isDeposit ? 'In-game to DC Cash' : 'DC Cash to in-game');
+      $('#drawer-amount-label').textContent = isMove ? 'Transfer amount' : (isDeposit ? 'Deposit amount' : 'Withdrawal amount');
+      $('#drawer-confirm').textContent = isMove ? 'Move money' : (isDeposit ? 'Start deposit listener' : 'Confirm withdrawal');
+      $('#drawer-account-wrap').classList.toggle('hidden', isMove);
+      $('#move-account-fields').classList.toggle('hidden', !isMove);
+      $('#deposit-command-wrap').classList.toggle('hidden', !isDeposit);
+      $('#withdraw-info').classList.toggle('hidden', !isWithdraw);
+      $('#drawer-account').value = state.activeAccount;
+      $('#move-from-account').value = state.activeAccount;
+      $('#move-to-account').value = state.activeAccount === 'checking' ? 'savings' : 'checking';
+      $('#drawer-form-content').classList.remove('hidden');
+      $('#drawer-receipt').classList.add('hidden');
+      $('#drawer-error').textContent = '';
+      updateCashCommand();
+      $('#drawer-layer').classList.add('open');
+      $('#drawer-layer').setAttribute('aria-hidden','false');
+    }
+    function closeDrawer() {
+      $('#drawer-layer').classList.remove('open');
+      $('#drawer-layer').setAttribute('aria-hidden','true');
+    }
+    $$('[data-drawer]').forEach(button => button.addEventListener('click', () => openDrawer(button.dataset.drawer)));
+    $$('[data-close-drawer]').forEach(button => button.addEventListener('click', closeDrawer));
+    $('#drawer-layer').addEventListener('click', event => { if (event.target === $('#drawer-layer')) closeDrawer(); });
+    $$('[data-preset]').forEach(button => button.addEventListener('click', () => { $('#drawer-amount').value = Number(button.dataset.preset).toFixed(2); updateCashCommand(); }));
+    function updateCashCommand() { $('#cash-command').textContent = `firm pay hiss ${Number($('#drawer-amount').value || 0).toFixed(2)}`; }
+    $('#drawer-amount').addEventListener('input', updateCashCommand);
+
+    $('#drawer-confirm').addEventListener('click', async () => {
+      const amount = Number($('#drawer-amount').value);
+      if (!amount || amount < 1) { $('#drawer-error').textContent = 'Enter an amount of at least $1.00.'; return; }
+      if (apiEnabled) {
+        try {
+          if (state.drawerMode === 'move') {
+            const from = $('#move-from-account').value;
+            const to = $('#move-to-account').value;
+            const result = await apiRequest('/api/transfers/internal', { method: 'POST', body: JSON.stringify({ from, to, amount }) });
+            applyServerState(result);
+            await loadServerTransactions();
+            $('#receipt-title').textContent = 'Transfer complete';
+            $('#receipt-copy').textContent = `${money(amount)} moved from ${accountName(from).toLowerCase()} to ${accountName(to).toLowerCase()}.`;
+            $('#drawer-form-content').classList.add('hidden');
+            $('#drawer-receipt').classList.remove('hidden');
+            selectAccount(to);
+            return;
+          }
+          const accountKey = $('#drawer-account').value;
+          if (state.drawerMode === 'withdraw') {
+            const result = await apiRequest('/api/withdrawals', { method: 'POST', body: JSON.stringify({ account: accountKey, amount, username: state.username }) });
+            applyServerState(result);
+            await loadServerTransactions();
+            $('#receipt-title').textContent = 'Withdrawal submitted';
+            $('#receipt-copy').textContent = `${money(amount)} was reserved from your ${accountName(accountKey).toLowerCase()} account for Firm payout.`;
+            $('#drawer-form-content').classList.add('hidden');
+            $('#drawer-receipt').classList.remove('hidden');
+            selectAccount(accountKey);
+            return;
+          }
+          if (!state.depositRequestId) {
+            const deposit = await apiRequest('/api/deposits', { method: 'POST', body: JSON.stringify({ account: accountKey, amount }) });
+            state.depositRequestId = deposit.id;
+            state.depositDemoEnabled = deposit.demoEnabled;
+            $('#cash-command').textContent = deposit.command;
+            $('#drawer-confirm').textContent = deposit.demoEnabled ? 'Simulate matched payment' : 'Check deposit status';
+            $('#drawer-error').textContent = 'Listener started. Send the command, then wait for confirmation.';
+            return;
+          }
+          let result;
+          if (state.depositDemoEnabled) {
+            result = await apiRequest(`/api/deposits/${state.depositRequestId}/simulate`, { method: 'POST', body: '{}' });
+          } else {
+            const status = await apiRequest(`/api/deposits/${state.depositRequestId}`);
+            if (status.status !== 'completed') { $('#drawer-error').textContent = 'Still waiting for the matching Firm payment.'; return; }
+            result = await apiRequest('/api/me');
+          }
+          applyServerState(result);
+          await loadServerTransactions();
+          $('#receipt-title').textContent = 'Deposit confirmed';
+          $('#receipt-copy').textContent = `${money(amount)} was added to your ${accountName(accountKey).toLowerCase()} account.`;
+          $('#drawer-form-content').classList.add('hidden');
+          $('#drawer-receipt').classList.remove('hidden');
+          selectAccount(accountKey);
+        } catch (error) {
+          $('#drawer-error').textContent = error.message;
+        }
+        return;
+      }
+      if (state.drawerMode === 'move') {
+        const from = $('#move-from-account').value;
+        const to = $('#move-to-account').value;
+        if (from === to) { $('#drawer-error').textContent = 'Choose two different accounts.'; return; }
+        if (amount > state.accounts[from]) { $('#drawer-error').textContent = `That transfer is larger than your ${accountName(from).toLowerCase()} balance.`; return; }
+        state.accounts[from] -= amount;
+        state.accounts[to] += amount;
+        state.transactions.unshift({ title: 'Account transfer', detail: `${accountName(from)} to ${accountName(to)}`, type: 'transfer', date: 'Just now', amount: 0, displayAmount: money(amount), icon: 'AT' });
+        saveBalances();
+        $('#receipt-title').textContent = 'Transfer complete';
+        $('#receipt-copy').textContent = `${money(amount)} moved from ${accountName(from).toLowerCase()} to ${accountName(to).toLowerCase()}.`;
+        $('#drawer-form-content').classList.add('hidden');
+        $('#drawer-receipt').classList.remove('hidden');
+        selectAccount(to);
+        return;
+      }
+      const accountKey = $('#drawer-account').value;
+      if (state.drawerMode === 'withdraw' && amount > state.accounts[accountKey]) { $('#drawer-error').textContent = `That withdrawal is larger than your ${accountName(accountKey).toLowerCase()} balance.`; return; }
+      const isDeposit = state.drawerMode === 'deposit';
+      state.accounts[accountKey] += isDeposit ? amount : -amount;
+      state.transactions.unshift({ title: isDeposit ? 'In-game deposit' : 'In-game withdrawal', detail: `${accountName(accountKey)} / ${isDeposit ? 'From' : 'To'} @${state.username}`, type: isDeposit ? 'deposit' : 'withdrawal', date: 'Just now', amount: isDeposit ? amount : -amount, icon: isDeposit ? 'IN' : 'OUT' });
+      $('#receipt-title').textContent = `${isDeposit ? 'Deposit' : 'Withdrawal'} confirmed`;
+      $('#receipt-copy').textContent = `${money(amount)} was ${isDeposit ? 'added to' : 'moved from'} your ${accountName(accountKey).toLowerCase()} account.`;
+      $('#drawer-form-content').classList.add('hidden');
+      $('#drawer-receipt').classList.remove('hidden');
+      saveBalances();
+      selectAccount(accountKey);
+    });
+
+    function updatePaymentPreview() {
+      const amount = Number($('#transfer-amount').value || 0);
+      const recipient = $('#recipient').value.trim() || 'Citizen';
+      $('#preview-amount').textContent = money(amount);
+      $('#preview-note').textContent = $('#transfer-note').value || 'DC Cash transfer';
+      $('#preview-source').textContent = `From ${accountName($('#source-account').value).toLowerCase()}`;
+      $('#preview-recipient').textContent = `@${recipient.replace(/^@/,'')}`;
+      $('#preview-avatar').textContent = recipient.replace(/^@/,'').slice(0,2).toUpperCase() || 'DC';
+    }
+    ['recipient','transfer-amount','transfer-note'].forEach(id => $(`#${id}`).addEventListener('input', updatePaymentPreview));
+    $('#source-account').addEventListener('change', () => { updatePaymentPreview(); renderTransactions(); });
+    $('#payment-form').addEventListener('submit', async event => {
+      event.preventDefault();
+      const type = $('#transfer-type').value;
+      const sourceAccount = $('#source-account').value;
+      const amount = Number($('#transfer-amount').value);
+      const recipient = $('#recipient').value.trim().replace(/^@/,'');
+      if (!recipient || !amount || amount <= 0) { $('#payment-error').textContent = 'Add a valid citizen username and amount.'; return; }
+      if (apiEnabled) {
+        try {
+          const result = await apiRequest('/api/payments', { method: 'POST', body: JSON.stringify({ type, account: sourceAccount, amount, recipient, note: $('#transfer-note').value }) });
+          if (result?.accounts) applyServerState(result);
+          await loadServerTransactions();
+          renderTransactions();
+          $('#payment-error').textContent = '';
+          toast(type === 'send' ? `${money(amount)} sent to @${recipient}` : `${money(amount)} requested from @${recipient}`);
+          showView('overview');
+        } catch (error) {
+          $('#payment-error').textContent = error.message;
+        }
+        return;
+      }
+      if (type === 'send' && amount > state.accounts[sourceAccount]) { $('#payment-error').textContent = `This payment is larger than your ${accountName(sourceAccount).toLowerCase()} balance.`; return; }
+      $('#payment-error').textContent = '';
+      if (type === 'send') {
+        state.accounts[sourceAccount] -= amount;
+        state.transactions.unshift({ title: recipient, detail: `${accountName(sourceAccount)} / ${$('#transfer-note').value || 'DC Cash payment'}`, type: 'payment', date: 'Just now', amount: -amount, icon: recipient.slice(0,2).toUpperCase() });
+        saveBalances();
+        renderTransactions();
+      } else {
+        state.transactions.unshift({ title: recipient, detail: `${$('#transfer-note').value || 'DC Cash request'} / Pending`, type: 'request', date: 'Just now', amount, pending: true, icon: 'RQ' });
+        renderTransactions();
+      }
+      toast(type === 'send' ? `${money(amount)} sent to @${recipient}` : `${money(amount)} requested from @${recipient}`);
+      showView('overview');
+    });
+    $('[data-action="request"]').addEventListener('click', () => { showView('pay'); $('#transfer-type').value = 'request'; updatePaymentPreview(); });
+    $('[data-action="clear-payment"]').addEventListener('click', () => { $('#recipient').value=''; $('#transfer-amount').value=''; $('#transfer-note').value=''; $('#payment-error').textContent=''; updatePaymentPreview(); });
+
+    function applySettings(settings = readSettings()) {
+      const theme = settings.theme || 'parchment';
+      document.body.dataset.theme = theme;
+      document.body.classList.toggle('balance-hidden', !!settings.hideBalance);
+      document.body.classList.toggle('compact-mode', !!settings.compact);
+      $('#theme-select').value = theme;
+      $('#balance-privacy').classList.toggle('on', !!settings.hideBalance);
+      $('#balance-privacy').setAttribute('aria-pressed', String(!!settings.hideBalance));
+      $('#compact-mode').classList.toggle('on', !!settings.compact);
+      $('#compact-mode').setAttribute('aria-pressed', String(!!settings.compact));
+    }
+    function currentSettings() { return { theme: $('#theme-select').value, hideBalance: $('#balance-privacy').classList.contains('on'), compact: $('#compact-mode').classList.contains('on') }; }
+    $('#theme-select').addEventListener('change', () => { saveSettings(currentSettings()); applySettings(); toast('Theme updated'); });
+    [['#balance-privacy', 'Balance privacy updated'], ['#compact-mode', 'Ledger density updated']].forEach(([selector, message]) => {
+      $(selector).addEventListener('click', () => { $(selector).classList.toggle('on'); saveSettings(currentSettings()); applySettings(); toast(message); });
+    });
+    $('#change-pin-form').addEventListener('submit', async event => {
+      event.preventDefault();
+      const current = $('#current-pin').value;
+      const next = $('#new-pin').value;
+      if (!/^\d{5}$/.test(next)) { $('#change-pin-error').textContent = 'The new PIN must contain exactly five numbers.'; return; }
+      if (apiEnabled) {
+        try {
+          await apiRequest('/api/auth/change-pin', { method: 'POST', body: JSON.stringify({ currentPin: current, newPin: next }) });
+          $('#current-pin').value = '';
+          $('#new-pin').value = '';
+          $('#change-pin-error').textContent = '';
+          toast('Five-digit login PIN updated');
+        } catch (error) {
+          $('#change-pin-error').textContent = error.message;
+        }
+        return;
+      }
+      const profile = readProfile();
+      if (!profile || current !== String(profile.pin)) { $('#change-pin-error').textContent = 'Your current PIN is incorrect.'; return; }
+      state.pin = next;
+      saveProfile({ ...profile, pin: next });
+      $('#current-pin').value = '';
+      $('#new-pin').value = '';
+      $('#change-pin-error').textContent = '';
+      toast('Five-digit login PIN updated');
+    });
+    $('#reverify-account').addEventListener('click', () => {
+      state.forceVerification = true;
+      $('#dashboard-screen').classList.add('hidden');
+      $('#auth-screen').classList.remove('hidden');
+      $('#username').value = state.username;
+      showAuthCard('#username-form');
+      showView('overview');
+    });
+
+    $$('[data-toast]').forEach(button => button.addEventListener('click', () => toast(button.dataset.toast)));
+    $('[data-copy-command]').addEventListener('click', async () => { try { await navigator.clipboard.writeText($('#verify-command').textContent); } catch {} toast('Verification command copied'); });
+    $('[data-copy-cash-command]').addEventListener('click', async event => { event.preventDefault(); try { await navigator.clipboard.writeText($('#cash-command').textContent); } catch {} toast('Deposit command copied'); });
+    $('#sign-out').addEventListener('click', async () => {
+      if (apiEnabled) {
+        try { await apiRequest('/api/auth/logout', { method: 'POST', body: '{}' }); } catch {}
+      }
+      $('#dashboard-screen').classList.add('hidden');
+      $('#auth-screen').classList.remove('hidden');
+      showAuthCard('#username-form');
+      $('#pin').value = '';
+      $('#pin-confirm').value = '';
+      state.forceVerification = false;
+      showView('overview');
+    });
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') closeDrawer(); });
+    async function bootstrap() {
+      applySettings();
+      updatePaymentPreview();
+      if (apiEnabled) {
+        try {
+          const account = await apiRequest('/api/me');
+          applyServerState(account);
+          await loadServerTransactions();
+          openDashboard();
+          return;
+        } catch {
+          showAuthCard('#username-form');
+          renderTransactions();
+          return;
+        }
+      }
+      const existingProfile = readProfile();
+      if (existingProfile?.username) $('#username').value = existingProfile.username;
+      const existingBalances = readBalances();
+      if (existingBalances && Number.isFinite(existingBalances.checking) && Number.isFinite(existingBalances.savings)) state.accounts = existingBalances;
+      renderTransactions();
+    }
+    bootstrap();
+  </script>
+</body>
+</html>
+
